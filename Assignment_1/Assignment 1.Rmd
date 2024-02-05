@@ -43,7 +43,7 @@ for(var in categorical_var){
 {r transform} depicts the transformation for the variable "Electric Range" which depicts the results after the number are squared from the original variable.
 
 ```{r transformation}
-#evp$transformed_var<-evp$'Electric Range'^2
+evp$transformed_var<-evp$'Electric Range'^2
 head(evp)
 ```
  
