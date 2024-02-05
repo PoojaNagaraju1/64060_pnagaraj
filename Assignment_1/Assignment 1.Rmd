@@ -1,0 +1,64 @@
+---
+title: "Assignment1"
+author: "Pooja Nagaraju"
+date: "2024-02-05"
+output: pdf_document
+---
+##The follwoing link contains the link to the Dataset source: <https://www.kaggle.com/datasets/reenapinto/electric-vehicle-population-data/data>
+
+The following packages were installed to run the following code.
+```{r setup, include=FALSE}
+library('tidyverse')
+```
+
+Loading the dataset : 
+```{r loading}
+#evp <- read.csv("./evp.xls")
+x<-evp[10, ]
+```
+
+
+The `quantitative_var` shows the desprictive statistics for the quantitative variables "Electric Range" and "Base MSRP" which includes the summary for the same
+```{r quantvar}
+quantitative_var <- c("Electric Range", "Base MSRP")
+summary(evp[quantitative_var])
+```
+
+
+
+{r catvar} shows the descriptive statistics for the categorial variable "Electric Vehicle Type", "State","Make","Model") which gives the summary for the same
+
+```{r catvar}
+categorical_var<- c("Electric Vehicle Type", "State","Make","Model")
+for(var in categorical_var){
+  cat(paste("summary for", var, ":\n"))
+  print(table(evp[var]))
+}
+```
+
+{r transform} depicts the transformation for the variable "Electric Range" which depicts the results after the number are squared from the original variable.
+
+```{r transformation}
+evp$transformed_var<-evp$'Electric Range'^2
+head(evp)
+```
+ 
+ {r hist}
+This command contains the histogram graph for Legislative District which is a quantitative variable 
+```{r hist}
+par(mar=c(4,4,2,2))
+hist(evp$'Legislative District', main="Histogram of Legislative District",xlab="Legislative District",col="black")
+
+```
+## Including Plots
+The final command shows the scatterplot which has the X axis label = "Model Year", and y axis label"Electric Range")
+
+
+
+```{r plotscatter, echo=FALSE}
+plot(evp$`Model Year`,evp$`Electric Range`, main="Scatterplot", xlab= "Model Year", ylab= "Electric Range")
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
