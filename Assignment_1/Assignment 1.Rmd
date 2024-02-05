@@ -9,12 +9,16 @@ output: pdf_document
 The following packages were installed to run the following code.
 ```{r setup, include=FALSE}
 library('tidyverse')
+library(readxl)
+
 ```
 
 Loading the dataset : 
-```{r loading}
-#evp <- read.csv("./evp.xls")
-x<-evp[10, ]
+```{r load, include=TRUE}
+#evp <- load("~/mydataset.RData")
+#head(evp)
+evp <- read_excel("evp.xls")
+head(evp)
 ```
 
 
@@ -39,7 +43,7 @@ for(var in categorical_var){
 {r transform} depicts the transformation for the variable "Electric Range" which depicts the results after the number are squared from the original variable.
 
 ```{r transformation}
-evp$transformed_var<-evp$'Electric Range'^2
+#evp$transformed_var<-evp$'Electric Range'^2
 head(evp)
 ```
  
