@@ -10,6 +10,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+#loading the library
 ```{r}
 library(class)
 library(caret)
@@ -17,25 +18,27 @@ library(e1071)
 library(ISLR)
 ```
 
-
+#reading the data
 ```{r step1}
 UB <- read.csv("~/Desktop/UniversalBank.csv")
 dim(UB)
 ```
 
-
+#dropping the ID and ZIP
 ```{r step2}
 UB <- UB[,-c(1,5)]
 ```
 
-
+#Changing categorical data
 ```{r step3}
 UB$Education <- as.factor(UB$Education)
 
 categories <- dummyVars(~., data = UB) ## Converting education to dummy categories
 UB <- as.data.frame(predict(categories,UB))
+```
 
-
+#splitting the data
+```{r}
 set.seed(1)  
 training_ind <- sample(row.names(UB), 0.6*dim(UB)[1])
 validation_ind <- setdiff(row.names(UB), training_ind)  
@@ -45,7 +48,7 @@ t(t(names(train_UB)))
 ```
 
 
-
+#normalising the values
 ```{r step4}
 norm.train <- train_UB[,-10] 
 norm.valid <- valid_UB[,-10]
@@ -55,10 +58,7 @@ norm.train <- predict(norm.values, train_UB[, -10])
 norm.valid <- predict(norm.values, valid_UB[, -10])
 ```
 
-
-
-
-
+#new customer sample
 ```{r step5}
 new.customer1 <- data.frame(
   Age = 40,
@@ -75,7 +75,10 @@ new.customer1 <- data.frame(
   Online = 1,
   CreditCard = 1
 )
+```
 
+#normalising new customer data
+```{r}
 norm.new.customer1 <- new.customer1
 norm.new.customer1 <- predict(norm.values, norm.new.customer1)
 
@@ -83,7 +86,7 @@ norm.new.customer1 <- predict(norm.values, norm.new.customer1)
 
 
 
-
+#to predict using knn
 ```{r step6}
 
 knn_predictor <- class::knn(train = norm.train, 
@@ -93,10 +96,7 @@ knn_predictor
 
 ```
 
-
-
-
-
+#calculating valur of k for each k
 ```{r step7}
 accuracyK <- data.frame(k = seq(1, 15, 1), overallaccuracy = rep(0, 15))
 for(i in 1:15) {
@@ -110,13 +110,14 @@ for(i in 1:15) {
 k <- which(accuracyK[,2] == max(accuracyK[,2])) 
 
 print(paste("The best k value is: ",k))
-plot(accuracyK$k,accuracyK$overallaccuracy,xlab="value of k",ylab="Accuracy")
-
 ```
 
+#plot for accuracy vs k
+```{}
+plot(accuracyK$k,accuracyK$overallaccuracy,xlab="value of k",ylab="Accuracy")
+```
 
-
-
+#confusionMatrix using k=3
 ```{r step8}
 knn_predictor <- class::knn(train = norm.train, 
                          test = norm.valid, 
@@ -127,9 +128,7 @@ matrix.k <- confusionMatrix(knn_predictor,
 matrix.k
 ```
 
-
-
-
+#loading new customer data
 ```{r step9}
 new.customer2 <- data.frame(
   Age = 40,
@@ -153,7 +152,7 @@ norm.new.customer2 <- predict(norm.values,norm.new.customer2)
 
 
 
-
+#kNN Prediction
 ```{r step10}
 knn_predictor <- class::knn(train = norm.train, 
                        test = norm.new.customer2, 
@@ -162,9 +161,8 @@ knn_predictor
 ```
 
 
-
-```{r step11}
 #Re partitioning the data.
+```{r step11}
 new_train_ind <- sample(row.names(UB), 0.5*dim(UB)[1])
 new_valid_ind <- sample(setdiff(row.names(UB), new_train_ind), 0.3*dim(UB)[1])
 new_test_ind <- setdiff(setdiff(row.names(UB), new_train_ind), new_valid_ind)
@@ -174,9 +172,9 @@ new_test_set <- UB[new_test_ind,]
 ```
 
 
-
+#normalising the data
 ```{r step12}
-new_train_norm <- new_train_set[,-10] # Note that Personal Income is the 10th variable
+new_train_norm <- new_train_set[,-10] 
 new_valid_norm <- new_valid_set[-10]
 new_test_norm <- new_test_set[-10]
 
@@ -187,7 +185,7 @@ new_test_norm<-  predict(new_norm, new_test_set[-10])
 ```
 
 
-
+#using knn to predict
 ```{r step13} 
 knn_train_predictor <- class::knn(train = new_train_norm, 
                          test = new_train_norm, 
@@ -198,7 +196,7 @@ train.matrix
 ```
 
 
-
+#validation confusion matrix
 ```{r step14}
 knn_valid_predictor <- class::knn(train = new_train_norm, 
                          test = new_valid_norm, 
@@ -207,7 +205,7 @@ valid.matrix <- confusionMatrix(knn_valid_predictor,as.factor(new_valid_set$Pers
 valid.matrix
 ```
 
-
+#test confusion matrix
 ```{r step15}
 knn_test_predictor <- class::knn(train = new_train_norm, 
                          test = new_test_norm, 
