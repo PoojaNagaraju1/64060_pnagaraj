@@ -1,0 +1,223 @@
+---
+title: '11'
+author: "Pooja Nagaraju"
+date: "2024-02-26"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(class)
+library(caret)
+library(e1071)
+library(ISLR)
+```
+
+
+```{r step1}
+UB <- read.csv("~/Desktop/UniversalBank.csv")
+dim(UB)
+```
+
+
+```{r step2}
+UB <- UB[,-c(1,5)]
+```
+
+
+```{r step3}
+UB$Education <- as.factor(UB$Education)
+
+categories <- dummyVars(~., data = UB) ## Converting education to dummy categories
+UB <- as.data.frame(predict(categories,UB))
+
+
+set.seed(1)  
+training_ind <- sample(row.names(UB), 0.6*dim(UB)[1])
+validation_ind <- setdiff(row.names(UB), training_ind)  
+train_UB <- UB[training_ind,]
+valid_UB <- UB[validation_ind,]
+t(t(names(train_UB)))
+```
+
+
+
+```{r step4}
+norm.train <- train_UB[,-10] 
+norm.valid <- valid_UB[,-10]
+
+norm.values <- preProcess(train_UB[, -10], method=c("center", "scale"))
+norm.train <- predict(norm.values, train_UB[, -10])
+norm.valid <- predict(norm.values, valid_UB[, -10])
+```
+
+
+
+
+
+```{r step5}
+new.customer1 <- data.frame(
+  Age = 40,
+  Experience = 10,
+  Income = 84,
+  Family = 2,
+  CCAvg = 2,
+  Education.1 = 0,
+  Education.2 = 1,
+  Education.3 = 0,
+  Mortgage = 0,
+  Securities.Account = 0,
+  CD.Account = 0,
+  Online = 1,
+  CreditCard = 1
+)
+
+norm.new.customer1 <- new.customer1
+norm.new.customer1 <- predict(norm.values, norm.new.customer1)
+
+```
+
+
+
+
+```{r step6}
+
+knn_predictor <- class::knn(train = norm.train, 
+                       test = norm.new.customer1, 
+                       cl = train_UB$Personal.Loan, k = 1)
+knn_predictor
+
+```
+
+
+
+
+
+```{r step7}
+accuracyK <- data.frame(k = seq(1, 15, 1), overallaccuracy = rep(0, 15))
+for(i in 1:15) {
+  knn_predictor <- class::knn(train = norm.train, 
+                         test = norm.valid, 
+                         cl = train_UB$Personal.Loan, k = i)
+  accuracyK[i, 2] <- confusionMatrix(knn_predictor, 
+                                       as.factor(valid_UB$Personal.Loan),positive = "1")$overall[1]
+}
+
+k <- which(accuracyK[,2] == max(accuracyK[,2])) 
+
+print(paste("The best k value is: ",k))
+plot(accuracyK$k,accuracyK$overallaccuracy,xlab="value of k",ylab="Accuracy")
+
+```
+
+
+
+
+```{r step8}
+knn_predictor <- class::knn(train = norm.train, 
+                         test = norm.valid, 
+                         cl = train_UB$Personal.Loan, k = 3)
+
+matrix.k <- confusionMatrix(knn_predictor, 
+                                       as.factor(valid_UB$Personal.Loan),positive = "1")
+matrix.k
+```
+
+
+
+
+```{r step9}
+new.customer2 <- data.frame(
+  Age = 40,
+  Experience = 10,
+  Income = 84,
+  Family = 2,
+  CCAvg = 2,
+  Education.1 = 0,
+  Education.2 = 1,
+  Education.3 = 0,
+  Mortgage = 0,
+  Securities.Account = 0,
+  CD.Account = 0,
+  Online = 1,
+  CreditCard = 1
+)
+
+norm.new.customer2 <- new.customer2
+norm.new.customer2 <- predict(norm.values,norm.new.customer2)
+```
+
+
+
+
+```{r step10}
+knn_predictor <- class::knn(train = norm.train, 
+                       test = norm.new.customer2, 
+                       cl = train_UB$Personal.Loan, k = 3)
+knn_predictor
+```
+
+
+
+```{r step11}
+#Re partitioning the data.
+new_train_ind <- sample(row.names(UB), 0.5*dim(UB)[1])
+new_valid_ind <- sample(setdiff(row.names(UB), new_train_ind), 0.3*dim(UB)[1])
+new_test_ind <- setdiff(setdiff(row.names(UB), new_train_ind), new_valid_ind)
+new_train_set <- UB[new_train_ind,]
+new_valid_set <- UB[new_valid_ind,]
+new_test_set <- UB[new_test_ind,]
+```
+
+
+
+```{r step12}
+new_train_norm <- new_train_set[,-10] # Note that Personal Income is the 10th variable
+new_valid_norm <- new_valid_set[-10]
+new_test_norm <- new_test_set[-10]
+
+new_norm <- preProcess(new_train_set[, -10], method=c("center", "scale"))
+new_train_norm <- predict(new_norm, new_train_set[, -10])
+new_valid_norm <- predict(new_norm, new_valid_set[, -10])
+new_test_norm<-  predict(new_norm, new_test_set[-10])
+```
+
+
+
+```{r step13} 
+knn_train_predictor <- class::knn(train = new_train_norm, 
+                         test = new_train_norm, 
+                         cl = new_train_set$Personal.Loan, k = 3)
+
+train.matrix <- confusionMatrix(knn_train_predictor,as.factor(new_train_set$Personal.Loan),positive = "1")
+train.matrix
+```
+
+
+
+```{r step14}
+knn_valid_predictor <- class::knn(train = new_train_norm, 
+                         test = new_valid_norm, 
+                         cl = new_train_set$Personal.Loan, k = 3)
+valid.matrix <- confusionMatrix(knn_valid_predictor,as.factor(new_valid_set$Personal.Loan),positive = "1")
+valid.matrix
+```
+
+
+```{r step15}
+knn_test_predictor <- class::knn(train = new_train_norm, 
+                         test = new_test_norm, 
+                         cl = new_train_set$Personal.Loan, k = 3)
+test.matrix <- confusionMatrix(knn_test_predictor,as.factor(new_test_set$Personal.Loan),positive = "1")
+test.matrix
+```
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
