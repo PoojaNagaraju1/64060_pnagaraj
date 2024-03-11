@@ -1,0 +1,190 @@
+---
+title: "Naive Bayes"
+author: "Pooja Nagaraju"
+date: "2024-03-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#loading the installed packages using library()
+```{r}
+library(readr)
+library(dplyr)
+library(caret)
+library(class)
+library(melt)
+library(reshape)
+library(reshape2)
+library(ggplot2)
+library(ISLR)
+library(naivebayes)
+library(e1071)
+library(pROC)
+```
+
+#Importing the universalBank Dataset
+```{r data}
+setwd("/Users/pooja/Desktop/FML")
+library(readr)
+UniversalBank <- read.csv("UniversalBank.csv")
+```
+
+#looking for any missing values using is.na()
+```{r values}
+Data_na <- is.na.data.frame("UniversalBank")
+```
+
+#converting categorical data to factor using as.factor()
+```{r as.factor}
+UniversalBank$Online<- as.factor(UniversalBank$Online)
+UniversalBank$CreditCard<- as.factor(UniversalBank$CreditCard)
+UniversalBank$Personal.Loan<- as.factor(UniversalBank$Personal.Loan)
+```
+
+#Partitioning the Data
+```{r partition}
+set.seed(333)
+Training_Index<- createDataPartition(UniversalBank$Personal.Loan, p=0.6, list=FALSE)
+Training_data <-UniversalBank[Training_Index,]
+Validation_data <-UniversalBank[-Training_Index,]
+```
+
+#Normalising the Data
+```{r normalise}
+Model_normal <- preProcess(Training_data[,-c(10,13:14)],method = c("center", "scale"))
+Train_normal <- predict(Model_normal,Training_data)
+Valid_normal<- predict(Model_normal,Validation_data)
+```
+
+PART A 
+#Creating a Pivot Table using the training data
+```{r table}
+Table.OCP <- table(Train_normal$Personal.Loan, Train_normal$Online, Train_normal$CreditCard, dnn=c("Personal Loan", "Online", "Credit Card"))
+Table.OCP
+```
+PART B
+#Computing P(Loan | Online & CC)
+```{r compute}
+Table.OCP[2,2,2] / (Table.OCP[2,2,2] + Table.OCP[1,2,2])
+```
+PART C
+#Creating two separate pivot tables for Training data
+```{r pivot table}
+table_online <- table(Train_normal$Personal.Loan, Train_normal$Online, dnn=c("Personal Loan", "Online"))
+table_online
+```
+
+#Computing the given quantities
+```{r credit}
+table_credit <- table(Train_normal$Personal.Loan, Training_data$CreditCard, dnn=c("Personal Loan", "Credit Card"))
+table_credit
+```
+PART D
+#Using the quantities to compute naive Bayes probablity 
+```{r}
+prob_ccl <- table_credit[2,2] / (table_credit[2,2] + table_credit[2,1])
+prob_ccl
+```
+
+```{r online}
+prob_ol <- table_online[2,2] / (table_online[2,2] + table_online[2,1])
+prob_ol
+```
+
+```{r}
+prob_loan <- sum(Train_normal$Personal.Loan==1) / length(Train_normal$Personal.Loan)
+prob_loan
+```
+
+```{r}
+prob_CredL <-table_credit[1,2] / (table_credit[1,2] + table_credit[1,1])
+prob_CredL
+```
+
+```{r}
+prob_onLoan <- table_online[1,2] / (table_online[1,2] + table_online[1,1])
+prob_onLoan
+```
+
+```{r}
+probability_loan <- sum(Train_normal$Personal.Loan==0) / length(Train_normal$Personal.Loan)
+probability_loan
+```
+PART E
+```{r}
+(prob_ol * prob_ccl * prob_loan) / (prob_ol * prob_ccl * prob_loan + prob_onLoan * prob_CredL * probability_loan)
+```
+{PART: F}
+We get higher value for P(loan=1|CC=1, Online=1) than what is obtained in B when we use Naive Bayes. We can observe that we get value of P(Loan = 1)  as 0.096 the same as in Naive bayes which says that the decision made to whether the an individual accepts the loan is independent of whether that person is an online user with a bank-issued credit card.
+
+
+PART G:
+#Running naive Bayes
+```{r}
+naivedata <- naiveBayes(Personal.Loan~Online+CreditCard,data=Train_normal)
+naivedata
+```
+
+#AUC Value and ROC Curve
+```{r}
+predicted <-predict(naivedata,Valid_normal, type = "raw")
+head(predicted)
+```
+
+
+```{r}
+roc(Valid_normal$Online, predicted[,2])
+```
+
+```{r}
+plot.roc(Valid_normal$Online,predicted[,2])
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
