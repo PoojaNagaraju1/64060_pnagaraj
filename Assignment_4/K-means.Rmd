@@ -1,0 +1,190 @@
+---
+title: "Assignment_4"
+author: "Pooja Nagaraju"
+date: "2024-03-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#install.packages("tidyverse")
+#install.packages("factoextra")
+#install.packages("flexclust")
+#install.packages("cluster")
+#install.packages("gridExtra")
+#install.packages("ggplot2")
+#install.packages("cowplot")
+
+#loading necessary libraries 
+```{r}
+library(tidyverse)
+library(factoextra)
+library(flexclust)
+library(cluster)
+library(gridExtra)
+library(ISLR)
+library(ggplot2)
+library(cowplot)
+```
+
+#importing the dataset pharma
+```{r}
+Pharma<-library(readr)
+Pharma<- read_csv("~/Downloads/Pharmaceuticals.csv")
+head(Pharma)
+```
+
+
+```{r}
+rownames(Pharma)<- Pharma$Symbol
+Pharma1 <- Pharma[,-c(1,2,12,13,14)]
+Ph_normal <- scale(Pharma1) 
+summary(Ph_normal)
+```
+#using get_dist() and fviz_dist() to compute and visualize distance matrix 
+```{r}
+set.seed(420)
+distance_matrix <- get_dist(Ph_normal)
+
+# displaying a dis/similarity and distance matrix
+fviz_dist(distance_matrix, gradient = list(low = "purple", mid = "white", high = "pink"))
+```
+#finding the optimal value of k using WSS and silhouette method
+```{r}
+WSS_method <- fviz_nbclust(Ph_normal,kmeans,method="wss")
+WSS_method
+```
+
+```{r}
+Silhouette_method <- fviz_nbclust(Ph_normal,kmeans,method="silhouette")
+Silhouette_method
+```
+#setting k=2 and running kmeans
+```{r}
+kmeans2<- kmeans(Ph_normal, centers=2, nstart = 25)
+kmeans2
+```
+#viewing the two clusters
+```{r}
+fviz_cluster(kmeans2, data = Ph_normal, pointsize = 2, labelsize = 5)
+```
+#setting k=5 and running kmeans
+```{r}
+kmeans5 <- kmeans(Ph_normal,centers=5,nstart=25)
+kmeans5
+```
+#viewing five clusters
+```{r}
+fviz_cluster(kmeans5, data = Ph_normal, pointsize = 2, labelsize = 5)
+```
+B)
+#Describing the clusters we got from WSS and Silhouette with respect to the median numbers used to form the clusters using the actual values
+```{r}
+Pharma2_WSS <- cbind(Pharma1, kmeans2$cluster)
+colnames(Pharma2_WSS) <- c("Market_Cap", "Beta", "PE_Ratio", "ROE","ROA","Asset_Turnover","Leverage","Rev_Growth","Net_Profit_Margin","Groups")
+Pharma2_WSS$Groups <- as.numeric(Pharma2_WSS$Groups)
+```
+
+```{r}
+WSS_Median<- aggregate(Pharma2_WSS,by=list(kmeans2$cluster),FUN=median)
+WSS_Median
+```
+
+#viewing the interpretation between the Clusters formed by WSS and the numerical variables
+```{r}
+centers <- data.frame(WSS_Median[,-c(1,11)]) %>% rowid_to_column() %>%
+gather('Columns', 'WSS_Median',-1)
+ggplot(centers, aes(x = Columns, y = WSS_Median, color = as.factor(rowid))) +
+geom_line(aes(group = as.factor(rowid))) + geom_point() +
+labs(color = "Cluster", title = 'Interpretation of Clusters by WSS method') +
+theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1))
+```
+
+#The following interpretation can be made from the above :
+cluster 1 has a bigger market capital with a value of 73.84, net profit with a value of 20.6, ROA has a value of 15.0 and ROE with a value of 31.0 when compared to the cluster 2 which has a market value of just 4.78, Net profit of 11.1, ROA with 15.0 and ROE value is 14.2.
+It is advisable to invest in cluster 1 because of the high return on investment, it's safe to invest in companies with larger market capitalization
+It's also seen from the analysis above that Beta Value for cluster 1 is considerably low compared to cluster 2 which is generally advised to be low meaning that the particular stock is less risky to invest in.
+
+#silhouette method for data transformation
+```{r}
+Pharma2_Sil <- cbind(Pharma1,kmeans5$cluster)
+colnames(Pharma2_Sil) <- c("Market_Cap", "Beta", "PE_Ratio", "ROE","ROA","Asset_Turnover","Leverage","Rev_Growth","Net_Profit_Margin","Groups")
+Pharma2_Sil$Groups <- as.numeric(Pharma2_Sil$Groups)
+```
+
+```{r}
+Sil_Median<- aggregate(Pharma2_Sil,by=list(kmeans5$cluster),FUN=median)
+Sil_Median
+```
+
+```{r}
+centers <- data.frame(Sil_Median[,-c(1,11)]) %>% rowid_to_column() %>%
+gather('Columns', 'Sil_Median',-1)
+ggplot(centers, aes(x = Columns, y = Sil_Median, color = as.factor(rowid))) +
+geom_line(aes(group = as.factor(rowid))) + geom_point() +
+labs(color = "Cluster", title = 'Interpretation of Clusters by Silhouete Method') +
+theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1))
+```
+#Analysis from the above clusters
+Cluster 1 have high beta value and leverage, average PE Ratio and less than average Asset turnover, Market Cap, ROE and Revenue Growth.
+Cluster 2 depicts a higher PE_Ratio which means the price of the stock is high compared to earnings and overpriced, we can also see the Net Profit Margin and ROE are the lowest among all the clusters.
+Cluster 3 has a high net profit margin compared to all other clusters. It also has average values for ROE,ROA, Revenue Growth and market value, where as Beta, PE Ratio and leverage can be seen as less than average.
+Cluster 4 has a higher Market Capital, ROE, ROA, Asset Turnover and Net Profit Margin also has a lesser Beta, PE_Ratio and Leverage. This suggests a cluster of well settled big pharma companies.
+Cluster 5 can be seen as the one having the highest Revenue Growth and the factors factors 
+are unsatisfactory which includes Market Cap And Asset Turnover
+
+C) WSS Method Transformation
+```{r}
+Pharma3_WSS <- cbind(Pharma[,c(12,13,14)],kmeans2$cluster)
+colnames(Pharma3_WSS) <- c("Median_Recommendation", "Location", "Exchange", "Groups")
+Pharma3_WSS$Groups <- as.numeric(Pharma3_WSS$Groups)
+list(Pharma3_WSS)
+```
+Median Recommendation v/s WSS CLusters
+```{r}
+ggplot(Pharma3_WSS, aes(fill = Median_Recommendation, x = as.factor(Groups))) +
+geom_bar(position = 'stack') + labs(x="Cluster", y="Companies",
+title = "Median v/s WSS Clusters")
+```
+In the above chart we can see that the cluster 1 has mixed recommendations and has hold recommendations it has moderate sell and buy, this is because of it's high probability of profit  due to the high value of Market Capital(73.84),ROA(15.0), ROE(31.0)and a Net profit margin(20.6) 
+where as in cluster 2 we can visualize that the companies has a possibility to grow in the future aand can be profitable in business with the values of different profit measuring parameters.
+
+
+#Silhouette Method Transformation
+```{r}
+Pharma3_Sil <- cbind(Pharma[,c(12,13,14)],kmeans5$cluster)
+colnames(Pharma3_Sil) <- c("Median_Recommendation", "Location", "Exchange", "Groups")
+Pharma3_Sil$Groups <- as.numeric(Pharma3_Sil$Groups)
+list(Pharma3_Sil)
+```
+Media Recommendation v/s Silhouette Cluster
+```{r}
+ggplot(Pharma3_Sil, aes(fill = Median_Recommendation, x = as.factor(Groups))) +
+geom_bar(position = 'stack') + labs(x="Cluster", y="Companies",
+title = "Median v/s Sil Clusters")
+```
+The companies of cluster 1 are recommended a hold or moderate buy because of their high BETA and Leverage values, which is 0.850 meaning it is highly unsettled compared to others, this might be considered as a reason to put them on hold by measuring the risk factor. 
+Cluster 2 is unfit because it is overpriced, however one recommendation says moderate buy which is inconsistent
+Cluster 3 on has mixed recommendations again, it can be considered as the second profit earning cluster in the future because of its factors, also has modest BETA and Leverage value reducing the risk factor.
+Cluster 4, even with the highest market value and other factors and BETA, leverage and PE_ratio being less is still considered moderate buy or hold. It is the cluster with possibly highest revenue generating factor and has substantial reasons to earn great profits, but has recommendations of hold.
+The cluster 5 is the final cluster that has recommendations of moderate buy and moderate sell which again is unreasonable because the companies of this cluster have high beta value and leverage when compared to other companies.
+
+Locations v/s Silhouette Clusters.
+```{r}
+ggplot(Pharma3_Sil, aes(fill = Location, x = as.factor(Groups))) +
+geom_bar(position = 'stack') + labs(x="Cluster", y="Location",
+title = "Location v/s Sil Clusters")
+```
+From the above chart we can visualize that all the clusters have companies that are based in the US.
+Cluster 3 companies are doing good and has a larger portion of companies based out of US.
+Cluster 4 can be told as the best cluster since it has majority of its companies based in the US, this brings us to the simple conclusion that companies  based of the US are better performing.
+
+D) Providing appropriate names.
+silhouette Cluster 1 : "Unsatisfactory Pharma" because of its low performance across all factors with high bta value and leverage.
+silhouette Cluster 2 : "Expensive Pharma" with High PE_Ratio
+silhouette Cluster 3 : "Presently Profitable Pharma" has good net growth rate but lowest revenue growth.
+silhouette Cluster 4 : "Significant Pharma" with high value across most factors.
+silhouette Cluster 5 : "Budding Pharma" because of its highest revenue growth factor.
+
