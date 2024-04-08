@@ -1,0 +1,217 @@
+---
+title: ' FML Assignment 5 '
+author: "Pooja Nagaraju"
+date: "2024-04-07"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#loading libraries
+```{r}
+library(cluster)
+library(caret)
+library(dendextend)
+library(knitr)
+library(factoextra)
+library(readr)
+```
+
+
+```{r}
+library(readr)
+Cereals <- read_csv("~/Downloads/Cereals.csv")
+```
+
+```{r} 
+#creating data frame that only includes numbers 
+Df_cereals<- data.frame(Cereals[,4:16])
+#To omit missing values
+Df_cereals <- na.omit(Df_cereals)
+#Normalizing the data
+Df_cereals_scaled <- scale(Df_cereals)
+#Using Euclidean distance to the normalize measurements and applying hierarchical clustering to the data.
+dist_eu <- dist(Df_cereals_scaled, method = "euclidean")
+hier_complete <- hclust(dist_eu, method = "complete")
+#Plotting the Dendogram
+plot(hier_complete, cex = 0.7, hang = -1)
+```
+
+```{r}
+#Performing clustering with single linkage, complete linkage, average linkage and Ward using the Agnes function.
+hier_single <- agnes(Df_cereals_scaled, method = "single")
+hier_complete <- agnes(Df_cereals_scaled, method = "complete")
+hier_average <- agnes(Df_cereals_scaled, method = "average")
+hier_ward <- agnes(Df_cereals_scaled, method = "ward")
+```
+
+```{r}
+#Single Linkage v/s Complete Linkage v/s Average Linkage v/s Ward
+print(hier_single$ac)
+```
+
+```{r}
+print(hier_complete$ac)
+```
+
+```{r}
+print(hier_average$ac)
+```
+
+
+```{r}
+print(hier_ward$ac)
+#From the above results we can observe that ward method has the highest value of 0.9046042 in comparison to other methods so we go ahead with that method
+```
+
+
+```{r}
+#Using the pltree() to visualize the Dendrogram 
+pltree(hier_ward, cex = 0.7, hang = -1, main = "Dendrogram of Agnes using Ward")
+rect.hclust(hier_ward, k = 5, border = 1:4)
+```
+
+
+```{r}
+#Using cutree() to cut the hierarchical cluster tree into k groups
+Cluster.1 <- cutree(hier_ward, k=5)
+dataframe_2 <- as.data.frame(cbind(Df_cereals_scaled,Cluster.1))
+fviz_cluster(list(data = dataframe_2 , cluster = Cluster.1))
+```
+
+
+```{r}
+#From the observation we can choose 5 clusters
+#Reading structure of the clusters and their stability 
+#Building and creating data partitions
+set.seed(123)
+Partition_1 <- Df_cereals[1:50,]
+Partition_2 <- Df_cereals[51:74,]
+```
+
+```{r}
+#Performing Hierarchical Clustering when k=5
+agnes.single <- agnes(scale(Partition_1), method = "single")
+agnes.single
+```
+
+```{r}
+agnes.complete <- agnes(scale(Partition_1), method = "complete")
+agnes.complete
+```
+
+```{r}
+agnes.average <- agnes(scale(Partition_1), method = "average")
+agnes.average
+```
+
+```{r}
+agnes.ward <- agnes(scale(Partition_1), method = "ward")
+agnes.ward
+```
+
+```{r}
+cbind(single=agnes.single$ac , complete=agnes.complete$ac , average= agnes.average$ac , ward= agnes.ward$ac)
+pltree(agnes.ward, cex = 0.6, hang = -1, main = "Dendogram of Agnes with Partitioned Data Using Ward")
+rect.hclust(agnes.ward, k = 5, border = 1:4)
+```
+
+```{r}
+cutree.2 <- cutree(agnes.ward, k = 5)
+result <- as.data.frame(cbind(Partition_1, cutree.2))
+result[result$cutree.2==1,]
+```
+
+
+```{r}
+#Calculating the centroids.
+centroid.1st<- colMeans(result[result$cutree.2==1,])
+result[result$cutree.2==2,]
+```
+
+
+```{r}
+centroid.2nd <- colMeans(result[result$cutree.2==2,])
+result[result$cutree.2==3,]
+```
+
+
+```{r}
+centroid.3rd<- colMeans(result[result$cutree.2==3,])
+result[result$cutree.2==4,]
+```
+
+
+```{r}
+centroid.4th <- colMeans(result[result$cutree.2==4,])
+centroids <- rbind(centroid.1st, centroid.2nd, centroid.3rd, centroid.4th)
+centroids
+```
+```{r}
+a2 <- as.data.frame(rbind(centroids[,-14], Partition_2))
+#Calculating the Distance
+Distance_1 <- get_dist(a2)
+Matrix_1 <- as.matrix(Distance_1)
+dataframe_1 <- data.frame(data=seq(1,nrow(Partition_2),1), Clusters = rep(0,nrow(Partition_2)))
+for(i in 1:nrow(Partition_2)) 
+{dataframe_1[i,2] <- which.min(Matrix_1[i+4, 1:4])}
+dataframe_1
+```
+
+
+```{r}
+cbind(dataframe_2$Cluster.1[51:74], dataframe_1$Clusters)
+```
+
+```{r}
+table(dataframe_2$Cluster.1[51:74] == dataframe_1$Clusters)
+```
+
+```{r}
+#From the above results we can conclude that the model is partially stable since we have equal number of results for both TRUE and FALSE
+Cereals_healthy <- Cereals
+Cereals_healthy_na <- na.omit(Cereals_healthy)
+Cluster_healthy <- cbind(Cereals_healthy_na, Cluster.1)
+Cluster_healthy
+```
+
+```{r}
+Cluster_healthy[Cluster_healthy$Cluster.1==1,]
+```
+
+```{r}
+Cluster_healthy[Cluster_healthy$Cluster.1==2,]
+```
+
+```{r}
+Cluster_healthy[Cluster_healthy$Cluster.1==3,]
+```
+
+```{r}
+Cluster_healthy[Cluster_healthy$Cluster.1==4,]
+```
+
+```{r}
+#Using the mean of the ratings to choose the best cluster 
+mean(Cluster_healthy[Cluster_healthy$Cluster.1==1,"rating"])
+```
+
+
+```{r}
+mean(Cluster_healthy[Cluster_healthy$Cluster.1==2,"rating"])
+```
+
+```{r}
+mean(Cluster_healthy[Cluster_healthy$Cluster.1==3,"rating"])
+```
+
+```{r}
+mean(Cluster_healthy[Cluster_healthy$Cluster.1==4,"rating"])
+
+#From the above results we can conclude that the mean ratings of the Cluster.1 is the highest with 73.84446, and we can choose this cluster to add to the menu as a healthier cereal
+```
+#In this particular data set we normalize the numerical data this is because we use the euclidean distance to calculate the distance, this method is highly scale dependent and sensitive to outliers, one can see a high influence in results when the units of one variable is changed.
